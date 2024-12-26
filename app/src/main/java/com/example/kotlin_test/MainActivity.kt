@@ -1,17 +1,5 @@
 package com.example.kotlin_test
 
-// import android.os.Bundle
-// import androidx.activity.ComponentActivity
-// import androidx.activity.compose.setContent
-// import androidx.compose.foundation.layout.fillMaxSize
-// import androidx.compose.material3.MaterialTheme
-// import androidx.compose.material3.Surface
-// import androidx.compose.material3.Text
-// import androidx.compose.runtime.Composable
-// import androidx.compose.ui.Modifier
-// import androidx.compose.ui.tooling.preview.Preview
-// import com.example.kotlin_test.ui.theme.KotlintestTheme
-
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -21,6 +9,8 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 
+import kotlinx.coroutines.*
+
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
@@ -29,6 +19,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var xTextView: TextView
     private lateinit var yTextView: TextView
     private lateinit var zTextView: TextView
+    private lateinit var coroutineTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +29,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         xTextView = findViewById(R.id.xTextView)
         yTextView = findViewById(R.id.yTextView)
         zTextView = findViewById(R.id.zTextView)
+        coroutineTextView = findViewById(R.id.coroutineTextView)
 
         // Initialize SensorManager and the accelerometer
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
@@ -47,6 +39,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             xTextView.text = "Accelerometer not available"
             yTextView.text = ""
             zTextView.text = ""
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(1000)
+            coroutineTextView.text = xTextView.text;
         }
     }
 
