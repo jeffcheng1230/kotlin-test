@@ -5,21 +5,33 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
-import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AppCompatActivity
 
 import kotlinx.coroutines.*
+
+import android.media.MediaPlayer
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
 
+    private var xAccel: Float = 0F
+    private var yAccel: Float = 0F
+    private var zAccel: Float = 0F
+
     private lateinit var xTextView: TextView
     private lateinit var yTextView: TextView
     private lateinit var zTextView: TextView
+
+    private lateinit var editText: EditText
+    private lateinit var button: Button
     private lateinit var coroutineTextView: TextView
+
+    private lateinit var mediaPlayer: MediaPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,11 +41,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         xTextView = findViewById(R.id.xTextView)
         yTextView = findViewById(R.id.yTextView)
         zTextView = findViewById(R.id.zTextView)
-        coroutineTextView = findViewById(R.id.coroutineTextView)
 
         // Initialize SensorManager and the accelerometer
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
 
         if (accelerometer == null) {
             xTextView.text = "Accelerometer not available"
@@ -41,9 +52,46 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             zTextView.text = ""
         }
 
+        // ========= Coroutine Example =========
+
+        editText = findViewById(R.id.editText)
+        button = findViewById(R.id.button)
+        coroutineTextView = findViewById(R.id.coroutineTextView)
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.music)
+        button.setOnClickListener {
+            // Get text from EditText
+            val inputText = editText.text.toString()
+
+            // Display input text in TextView
+            coroutineTextView.text = "You entered: $inputText"
+
+            if (!mediaPlayer.isPlaying) {
+                mediaPlayer.start()
+            }
+            else {
+                mediaPlayer.stop()
+            }
+
+            mediaPlayer.setOnCompletionListener {
+                mediaPlayer.stop()
+            }
+        }
+
         CoroutineScope(Dispatchers.Main).launch {
-            delay(1000)
-            coroutineTextView.text = xTextView.text;
+            checkAccel();
+        }
+    }
+
+    private suspend fun checkAccel() = coroutineScope {
+        while (isActive) {
+            if (zAccel < -4) {
+                coroutineTextView.text = "Dropped!";
+            }
+            else if (zAccel > 3) {
+                coroutineTextView.text = "Drop reset";
+            }
+            delay(50);
         }
     }
 
@@ -71,9 +119,20 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             xTextView.text = "X: $x"
             yTextView.text = "Y: $y"
             zTextView.text = "Z: $z"
+
+            xAccel = x;
+            yAccel = y;
+            zAccel = z;
         }
     }
 
     // Required but not used
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::mediaPlayer.isInitialized) {
+            mediaPlayer.release()  // Release the MediaPlayer resource
+        }
+    }
 }
