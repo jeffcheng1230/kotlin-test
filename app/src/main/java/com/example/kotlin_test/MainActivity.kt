@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var button: Button
     private lateinit var coroutineTextView: TextView
 
-    private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var helpPlayer: MediaPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +58,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         button = findViewById(R.id.button)
         coroutineTextView = findViewById(R.id.coroutineTextView)
 
-        mediaPlayer = MediaPlayer.create(this, R.raw.music)
+        helpPlayer = MediaPlayer.create(this, R.raw.help)
         button.setOnClickListener {
             // Get text from EditText
             val inputText = editText.text.toString()
@@ -66,15 +66,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             // Display input text in TextView
             coroutineTextView.text = "You entered: $inputText"
 
-            if (!mediaPlayer.isPlaying) {
-                mediaPlayer.start()
-            }
-            else {
-                mediaPlayer.stop()
-            }
-
-            mediaPlayer.setOnCompletionListener {
-                mediaPlayer.stop()
+            if (!helpPlayer.isPlaying) {
+                helpPlayer.start()
             }
         }
 
@@ -85,13 +78,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private suspend fun checkAccel() = coroutineScope {
         while (isActive) {
-            if (zAccel < -4) {
-                coroutineTextView.text = "Dropped!";
+//            if (zAccel < -2F) {
+            if (false) {
+                if (!helpPlayer.isPlaying) {
+                    coroutineTextView.text = "Dropped!";
+                    helpPlayer.start()
+                }
             }
-            else if (zAccel > 3) {
-                coroutineTextView.text = "Drop reset";
+            else {
+                coroutineTextView.text = "Reset Dropped!";
             }
-            delay(50);
+            delay(5);
         }
     }
 
@@ -131,8 +128,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.release()  // Release the MediaPlayer resource
+        if (::helpPlayer.isInitialized) {
+            helpPlayer.release()  // Release the MediaPlayer resource
         }
     }
 }
