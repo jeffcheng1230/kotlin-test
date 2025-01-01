@@ -37,6 +37,39 @@
         app:layout_constraintTop_toBottomOf="@id/yTextView"
         app:layout_constraintStart_toStartOf="parent"/>
 
+    <!-- X-axis gyro -->
+    <TextView
+        android:id="@+id/xGyroTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="X: 0.0"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintLeft_toRightOf="@id/xTextView"/>
+
+    <!-- Y-axis gyro -->
+    <TextView
+        android:id="@+id/yGyroTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Y: 0.0"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@id/xGyroTextView"
+        app:layout_constraintLeft_toRightOf="@id/xTextView"/>
+
+    <!-- Z-axis gyro -->
+    <TextView
+        android:id="@+id/zGyroTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Z: 0.0"
+        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@id/yGyroTextView"
+        app:layout_constraintLeft_toRightOf="@id/zTextView"/>
+
     <!-- Co-routine printing -->
     <TextView
         android:id="@+id/coroutineTextView"

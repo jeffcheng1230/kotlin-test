@@ -1,5 +1,6 @@
 package com.example.kotlin_test
 
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -13,123 +14,136 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.*
 
 import android.media.MediaPlayer
+import android.util.Log
+import android.view.View
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody
+import org.json.JSONObject
+import java.io.IOException
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
-    private lateinit var sensorManager: SensorManager
-    private var accelerometer: Sensor? = null
+    private lateinit var sensorManager : SensorManager
+    private var accelerometer : Sensor? = null
+    private var magnetometer : Sensor? = null
+    private var gyro : Sensor? = null
 
-    private var xAccel: Float = 0F
-    private var yAccel: Float = 0F
-    private var zAccel: Float = 0F
+    private val gravity = FloatArray(3)
+    private val geomagnetic = FloatArray(3)
+    private val rotVelocity = FloatArray(3)
+    private val orientation = FloatArray(3)
 
-    private lateinit var xTextView: TextView
-    private lateinit var yTextView: TextView
-    private lateinit var zTextView: TextView
+    private lateinit var rootView : View
+    private var curColor = "white"
 
-    private lateinit var editText: EditText
-    private lateinit var button: Button
-    private lateinit var coroutineTextView: TextView
-
-    private lateinit var helpPlayer: MediaPlayer
+    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Displays Pokemon using PokeAPI when phone is looked at
+        // Gestures include pointing phone left/right and back to center
+
+        // TODO
+        // nav button to switch activities
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_pokemon)
 
-        // Initialize TextViews
-        xTextView = findViewById(R.id.xTextView)
-        yTextView = findViewById(R.id.yTextView)
-        zTextView = findViewById(R.id.zTextView)
-
-        // Initialize SensorManager and the accelerometer
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        gyro = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-        if (accelerometer == null) {
-            xTextView.text = "Accelerometer not available"
-            yTextView.text = ""
-            zTextView.text = ""
-        }
-
-        // ========= Coroutine Example =========
-
-        editText = findViewById(R.id.editText)
-        button = findViewById(R.id.button)
-        coroutineTextView = findViewById(R.id.coroutineTextView)
-
-        helpPlayer = MediaPlayer.create(this, R.raw.help)
-        button.setOnClickListener {
-            // Get text from EditText
-            val inputText = editText.text.toString()
-
-            // Display input text in TextView
-            coroutineTextView.text = "You entered: $inputText"
-
-            if (!helpPlayer.isPlaying) {
-                helpPlayer.start()
-            }
-        }
+        rootView = findViewById<View>(android.R.id.content)
 
         CoroutineScope(Dispatchers.Main).launch {
-            checkAccel();
+            run("https://pokeapi.co/api/v2/pokemon/serperior/")
         }
     }
 
-    private suspend fun checkAccel() = coroutineScope {
-        while (isActive) {
-//            if (zAccel < -2F) {
-            if (false) {
-                if (!helpPlayer.isPlaying) {
-                    coroutineTextView.text = "Dropped!";
-                    helpPlayer.start()
+    fun run(url: String) {
+        val request = Request.Builder()
+            .url(url)
+            .build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                var body : ResponseBody? = response.body()
+                if (body != null) {
+                    var jsonObj = JSONObject(body.string())
+                    Log.i("MainActivity", jsonObj.getJSONObject("sprites").getString("front_default"))
                 }
             }
-            else {
-                coroutineTextView.text = "Reset Dropped!";
-            }
-            delay(5);
-        }
+        })
     }
 
     override fun onResume() {
         super.onResume()
-        // Register the listener for the accelerometer
-        accelerometer?.also {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        accelerometer?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+        magnetometer?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+        gyro?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
         }
     }
 
     override fun onPause() {
         super.onPause()
-        // Unregister the listener to save battery
         sensorManager.unregisterListener(this)
     }
 
-    // Called when sensor data changes
     override fun onSensorChanged(event: SensorEvent?) {
-        if (event != null) {
-            val x = event.values[0] // Acceleration along the X axis
-            val y = event.values[1] // Acceleration along the Y axis
-            val z = event.values[2] // Acceleration along the Z axis
+        if (event == null) { return }
 
-            xTextView.text = "X: $x"
-            yTextView.text = "Y: $y"
-            zTextView.text = "Z: $z"
+        when (event.sensor.type) {
+            Sensor.TYPE_ACCELEROMETER -> {
+                System.arraycopy(event.values, 0, gravity, 0, event.values.size)
+            }
+            Sensor.TYPE_MAGNETIC_FIELD -> {
+                System.arraycopy(event.values, 0, geomagnetic, 0, event.values.size)
+            }
+            Sensor.TYPE_GYROSCOPE -> {
+                System.arraycopy(event.values, 0, rotVelocity, 0, event.values.size)
+            }
+        }
 
-            xAccel = x;
-            yAccel = y;
-            zAccel = z;
+        if (gravity.isNotEmpty() && geomagnetic.isNotEmpty()) {
+            val r = FloatArray(9)
+            val i = FloatArray(9)
+            if (SensorManager.getRotationMatrix(r, i, gravity, geomagnetic)) {
+                SensorManager.getOrientation(r, orientation)
+            }
+        }
+
+        if (abs(rotVelocity[0]) > 0.5) {
+            if (curColor != "green") {
+                rootView.setBackgroundColor(Color.GREEN)
+                curColor = "green"
+            }
+        }
+        else {
+            if (-0.9 < orientation[1] && orientation[1] < -0.2) {
+                if (curColor != "red") {
+                    rootView.setBackgroundColor(Color.RED)
+                    curColor = "red"
+                }
+            }
+            else {
+                if (curColor != "white") {
+                    rootView.setBackgroundColor(Color.WHITE)
+                    curColor = "white"
+                }
+            }
         }
     }
 
-    // Required but not used
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (::helpPlayer.isInitialized) {
-            helpPlayer.release()  // Release the MediaPlayer resource
-        }
+    override fun onAccuracyChanged(sensor: Sensor, acurracy: Int) {
     }
+
 }
